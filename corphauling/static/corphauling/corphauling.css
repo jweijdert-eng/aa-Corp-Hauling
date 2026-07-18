@@ -136,3 +136,16 @@
     margin-top: .3rem; padding-top: .35rem; border-top: 1px solid var(--cc-border);
     font-weight: 700; color: var(--cc-gold);
 }
+
+/* Profielpagina: koppen, schepenlijst */
+.cc-app .cc-kop { font-size: 1rem; font-weight: 700; margin: 1.2rem 0 .3rem; }
+.cc-app .cc-badge-actief {
+    font-size: .62rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em;
+    padding: .08rem .4rem; border-radius: 999px; margin-left: .4rem;
+    color: #04121a; background: var(--cc-green);
+}
+.cc-app .cc-knop {
+    background: none; border: 1px solid var(--cc-border); cursor: pointer;
+    margin-left: .25rem; padding: .1rem .45rem; border-radius: 999px; font-size: .78rem;
+}
+.cc-app .cc-knop-weg { color: var(--cc-red); border-color: rgba(224, 85, 85, .4); }

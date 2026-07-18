@@ -88,8 +88,11 @@
         {% endif %}
     </div>
 
-    <form method="post" style="max-width: 520px;">
+    <h3 class="cc-kop">{% translate "Mijn skills" %}</h3>
+    <p class="cc-dim small">{% translate "Deze gelden voor al je schepen." %}</p>
+    <form method="post" style="max-width: 520px;" class="mb-4">
         {% csrf_token %}
+        <input type="hidden" name="actie" value="skills">
         {% for veld in form %}
             <div class="mb-3">
                 <label class="form-label" for="{{ veld.id_for_label }}">{{ veld.label }}</label>
@@ -98,6 +101,81 @@
                 {% for fout in veld.errors %}<div class="cc-red small">{{ fout }}</div>{% endfor %}
             </div>
         {% endfor %}
-        <button type="submit" class="btn btn-sm cc-refresh">{% translate "Opslaan" %}</button>
+        <button type="submit" class="btn btn-sm cc-refresh">{% translate "Skills opslaan" %}</button>
+    </form>
+
+    <h3 class="cc-kop">{% translate "Mijn schepen" %}</h3>
+    {% if schepen %}
+        <table class="table cc-table align-middle mb-3" style="max-width: 820px;">
+            <thead>
+                <tr>
+                    <th>{% translate "Schip" %}</th>
+                    <th>{% translate "Fit" %}</th>
+                    <th class="text-end">{% translate "Vrachtruimte" %}</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for s in schepen %}
+                    <tr>
+                        <td>
+                            <strong>{{ s.get_schip_type_id_display }}</strong>
+                            {% if s.naam %}<span class="cc-dim">· {{ s.naam }}</span>{% endif %}
+                            {% if s.actief %}<span class="cc-badge cc-badge-actief">{% translate "actief" %}</span>{% endif %}
+                        </td>
+                        <td class="cc-dim small">
+                            {% if s.fit %}{% translate "fit ingevuld" %}{% else %}{% translate "kale romp" %}{% endif %}
+                        </td>
+                        <td class="text-end">
+                            {% if s.hold_handmatig %}{{ s.hold_handmatig|floatformat:0 }} m³
+                            {% else %}<span class="cc-dim">{% translate "berekend" %}</span>{% endif %}
+                        </td>
+                        <td class="text-end">
+                            <a href="?bewerk={{ s.pk }}" class="cc-sort">{% translate "bewerken" %}</a>
+                            {% if not s.actief %}
+                                <form method="post" style="display:inline">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="actie" value="schip-actief">
+                                    <input type="hidden" name="schip_id" value="{{ s.pk }}">
+                                    <button type="submit" class="cc-sort cc-knop">{% translate "maak actief" %}</button>
+                                </form>
+                            {% endif %}
+                            <form method="post" style="display:inline"
+                                  onsubmit="return confirm('{% translate "Dit schip verwijderen?" %}')">
+                                {% csrf_token %}
+                                <input type="hidden" name="actie" value="schip-weg">
+                                <input type="hidden" name="schip_id" value="{{ s.pk }}">
+                                <button type="submit" class="cc-sort cc-knop cc-knop-weg">×</button>
+                            </form>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p class="cc-dim">{% translate "Nog geen schepen. Voeg er hieronder één toe." %}</p>
+    {% endif %}
+
+    <h4 class="cc-kop">
+        {% if bewerken %}{% translate "Schip bewerken" %}{% else %}{% translate "Schip toevoegen" %}{% endif %}
+    </h4>
+    <form method="post" style="max-width: 620px;">
+        {% csrf_token %}
+        <input type="hidden" name="actie" value="{% if bewerken %}schip-bewerk{% else %}schip-nieuw{% endif %}">
+        {% if bewerken %}<input type="hidden" name="schip_id" value="{{ bewerken.pk }}">{% endif %}
+        {% for veld in schip_form %}
+            <div class="mb-3">
+                <label class="form-label" for="{{ veld.id_for_label }}">{{ veld.label }}</label>
+                {{ veld }}
+                {% if veld.help_text %}<div class="cc-dim small mt-1">{{ veld.help_text }}</div>{% endif %}
+                {% for fout in veld.errors %}<div class="cc-red small">{{ fout }}</div>{% endfor %}
+            </div>
+        {% endfor %}
+        <button type="submit" class="btn btn-sm cc-refresh">
+            {% if bewerken %}{% translate "Opslaan" %}{% else %}{% translate "Toevoegen" %}{% endif %}
+        </button>
+        {% if bewerken %}
+            <a href="{% url 'corphauling:profiel' %}" class="cc-sort ms-2">{% translate "annuleren" %}</a>
+        {% endif %}
     </form>
 {% endblock %}

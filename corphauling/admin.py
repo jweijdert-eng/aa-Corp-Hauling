@@ -4,7 +4,7 @@ from django.contrib import admin
 from django.core.cache import cache
 from django.utils.translation import gettext_lazy as _
 
-from .models import Config, Piloot
+from .models import Config, Piloot, Schip
 
 
 @admin.register(Config)
@@ -67,11 +67,12 @@ class ConfigAdmin(admin.ModelAdmin):
 class PilootAdmin(admin.ModelAdmin):
     """Overzicht van alle haul-profielen: wie vliegt wat, en waarmee we rekenen."""
 
-    list_display = ("gebruiker", "character", "schip", "skills", "skills_bron",
-                    "bereik", "verbruik", "hold", "signaal")
-    list_filter = ("schip_type_id", "skills_uit_esi")
+    list_display = ("gebruiker", "character", "schip", "schepen_aantal", "skills",
+                    "skills_bron", "bereik", "verbruik", "hold", "signaal")
+    list_filter = ("skills_uit_esi", "schepen__schip_type_id")
     search_fields = ("user__username", "user__profile__main_character__character_name")
-    fields = ("user", "schip_type_id", "skills_uit_esi", "jdc", "jfc")
+    fields = ("user", "skills_uit_esi", "jdc", "jfc", "jf_skill", "rassen_skill")
+    inlines = ()   # wordt onderaan gezet, zodat SchipInline eerst bestaat
     # Bewust GEEN autocomplete_fields: dat eist een geregistreerde User-admin met
     # search_fields, en die heeft Alliance Auth niet. Django's systeemcheck (E039)
     # weigert dan te starten — de hele site ligt er dan uit.
@@ -98,9 +99,14 @@ class PilootAdmin(admin.ModelAdmin):
         main = getattr(getattr(obj.user, "profile", None), "main_character", None)
         return main.character_name if main else "—"
 
-    @admin.display(description=_("Schip"), ordering="schip_type_id")
+    @admin.display(description=_("Actief schip"))
     def schip(self, obj):
-        return obj.get_schip_type_id_display()
+        s = obj.actief_schip()
+        return str(s) if s else "—"
+
+    @admin.display(description=_("Schepen"))
+    def schepen_aantal(self, obj):
+        return obj.schepen.count()
 
     @admin.display(description=_("Skills uit"), boolean=False)
     def skills_bron(self, obj):
@@ -144,6 +150,60 @@ class PilootAdmin(admin.ModelAdmin):
         if not par.get("hold"):
             return "⚠ scheepsdata niet geladen"
         return "✓"
+
+    def _can(self, request):
+        return request.user.is_superuser or request.user.has_perm(
+            "corphauling.manage_settings"
+        )
+
+    def has_view_permission(self, request, obj=None):
+        return self._can(request)
+
+    def has_add_permission(self, request):
+        return self._can(request)
+
+    def has_change_permission(self, request, obj=None):
+        return self._can(request)
+
+    def has_delete_permission(self, request, obj=None):
+        return self._can(request)
+
+
+class SchipInline(admin.TabularInline):
+    """De schepen van een piloot, direct onder z'n profiel."""
+
+    model = Schip
+    extra = 0
+    fields = ("schip_type_id", "naam", "hold_handmatig", "actief", "fit")
+    classes = ("collapse",)
+
+
+PilootAdmin.inlines = (SchipInline,)
+
+
+@admin.register(Schip)
+class SchipAdmin(admin.ModelAdmin):
+    """Alle schepen over alle piloten heen — handig om fits te vergelijken."""
+
+    list_display = ("eigenaar", "schip", "naam", "actief", "hold_handmatig", "heeft_fit")
+    list_filter = ("schip_type_id", "actief")
+    search_fields = ("piloot__user__username", "naam")
+    raw_id_fields = ("piloot",)
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related("piloot__user")
+
+    @admin.display(description=_("Piloot"), ordering="piloot__user__username")
+    def eigenaar(self, obj):
+        return obj.piloot.user.username
+
+    @admin.display(description=_("Schip"), ordering="schip_type_id")
+    def schip(self, obj):
+        return obj.get_schip_type_id_display()
+
+    @admin.display(description=_("Fit"), boolean=True)
+    def heeft_fit(self, obj):
+        return bool(obj.fit.strip())
 
     def _can(self, request):
         return request.user.is_superuser or request.user.has_perm(

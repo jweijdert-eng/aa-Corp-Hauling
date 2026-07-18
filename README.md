@@ -57,8 +57,11 @@ De profielpagina laat de hele opbouw zien, zodat je 'm naast de game kunt leggen
 
 ### Persoonlijk profiel
 
-Elk lid kan op `/corp-hauling/profiel/` zijn eigen schip kiezen (Ark, Anshar, Nomad,
-Rhea). Skills worden standaard **uit EVE gelezen** — Jump Drive Calibration (+20%
+Elk lid beheert op `/corp-hauling/profiel/` **zijn eigen vloot**: voeg zoveel jump
+freighters toe als je wilt (Ark, Anshar, Nomad, Rhea), elk met een eigen naam en fit.
+Eén schip is actief — daarmee wordt op het contractenbord gerekend, en je wisselt met
+één klik. De andere schepen worden wel doorgerekend, zodat je ziet of een contract dat
+niet in je actieve schip past wél in een van je andere past. Skills worden standaard **uit EVE gelezen** — Jump Drive Calibration (+20%
 bereik per niveau) en Jump Fuel Conservation (−10% verbruik per niveau) — of je vult ze
 zelf in. De kosten op het bord zijn daarmee die van jóuw piloot, en contracten die niet
 in je hold passen krijgen de melding *past niet*.

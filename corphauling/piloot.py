@@ -10,7 +10,7 @@ import logging
 from .esi import (RASSEN_SKILL, SKILL_JDC, SKILL_JFC, SKILL_JF,
                    character_skills, isotoop_prijs, schip_stats)
 from .fit import hold_uit_fit
-from .models import Config, Piloot
+from .models import Config, Piloot, Schip
 
 logger = logging.getLogger(__name__)
 
@@ -58,10 +58,8 @@ def parameters(user=None):
         profiel = Piloot.objects.filter(user=user).first()
 
     # --- schip ---------------------------------------------------------
-    if profiel:
-        stats = schip_stats(profiel.schip_type_id)
-    else:
-        stats = None
+    schip = profiel.actief_schip() if profiel else None
+    stats = schip_stats(schip.schip_type_id) if schip else None
 
     if stats and stats.get("isotopen_per_ly"):
         schip_naam = stats["naam"]
@@ -80,10 +78,12 @@ def parameters(user=None):
         schip_bron = "corp"
 
     # --- skills --------------------------------------------------------
-    rassen_id = RASSEN_SKILL.get(profiel.schip_type_id if profiel else 0, 0)
+    rassen_id = RASSEN_SKILL.get(schip.schip_type_id if schip else 0, 0)
     char_naam = ""
+    esi_niveaus = None
     if profiel and profiel.skills_uit_esi:
         niveaus, char_naam = _skills_van_gebruiker(user, rassen_id)
+        esi_niveaus = niveaus
         if niveaus:
             jdc = niveaus.get(SKILL_JDC, 0)
             jfc = niveaus.get(SKILL_JFC, 0)
@@ -119,18 +119,20 @@ def parameters(user=None):
 
     fit_modules = []
     hold_berekend = hold_skills
-    if hold_skills and profiel and profiel.fit.strip():
-        hold_berekend, fit_modules = hold_uit_fit(hold_skills, profiel.fit)
+    if hold_skills and schip and schip.fit.strip():
+        hold_berekend, fit_modules = hold_uit_fit(hold_skills, schip.fit)
 
     # Zelf ingevuld gaat altijd voor: dat is het enige getal dat we zeker weten.
     hold_bron = "berekend"
-    if profiel and profiel.hold_handmatig:
-        hold_berekend, hold_bron = profiel.hold_handmatig, "handmatig"
+    if schip and schip.hold_handmatig:
+        hold_berekend, hold_bron = schip.hold_handmatig, "handmatig"
     elif fit_modules:
         hold_bron = "fit"
 
     return {
         "schip": schip_naam,
+        "schip_label": str(schip) if schip else "",
+        "schip_id": schip.pk if schip else None,
         "schip_bron": schip_bron,
         "bereik_ly": bereik,
         "isotopen_per_ly": isotopen_per_ly,
@@ -150,4 +152,38 @@ def parameters(user=None):
         "skill_bron": skill_bron,
         "skill_character": char_naam,
         "heeft_profiel": profiel is not None,
+        "andere_schepen": _andere_schepen(
+            profiel, schip, jf_niv, rassen_niv, esi_niveaus) if profiel else [],
     }
+
+
+def _andere_schepen(profiel, actief, jf_niv, rassen_niv_actief, esi_niveaus):
+    """[(label, hold)] van je overige schepen — voor 'past wel in je andere schip'.
+
+    Let op: elk schip gebruikt de rassen-freighterskill van zíjn eigen ras. Die
+    van het actieve schip overnemen zou de hold van de andere schepen scheef
+    trekken (een Amarr-skill zegt niets over een Rhea).
+    """
+    uit = []
+    for s in profiel.schepen.all():
+        if actief and s.pk == actief.pk:
+            continue
+        stats = schip_stats(s.schip_type_id)
+        basis = stats.get("hold") or 0
+        if not basis:
+            continue
+
+        rassen_id = RASSEN_SKILL.get(s.schip_type_id, 0)
+        if esi_niveaus:
+            rassen_niv = min(5, max(0, esi_niveaus.get(rassen_id, 0)))
+        else:
+            rassen_niv = rassen_niv_actief      # handmatig ingevuld: één waarde voor alles
+
+        hold = basis * (1 + 0.10 * jf_niv) * (1 + 0.05 * rassen_niv)
+        if s.fit.strip():
+            hold, _mods = hold_uit_fit(hold, s.fit)
+        if s.hold_handmatig:
+            hold = s.hold_handmatig
+        uit.append({"label": str(s), "hold": hold,
+                    "schip": stats.get("naam", ""), "rassen_skill": rassen_niv})
+    return uit

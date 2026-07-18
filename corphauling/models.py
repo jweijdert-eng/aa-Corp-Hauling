@@ -136,10 +136,6 @@ class Piloot(models.Model):
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="corphauling_piloot",
     )
-    schip_type_id = models.IntegerField(
-        choices=SCHEPEN, default=28850, verbose_name=_("Schip"),
-        help_text=_("Bepaalt het isotopenverbruik, de brandstofsoort en hoeveel er in je hold past."),
-    )
     skills_uit_esi = models.BooleanField(
         default=True, verbose_name=_("Skills uit EVE halen"),
         help_text=_("Leest Jump Drive Calibration en Jump Fuel Conservation van je "
@@ -161,18 +157,6 @@ class Piloot(models.Model):
         default=5, verbose_name=_("Freighter-skill van het ras"),
         help_text=_("Caldari/Gallente/Minmatar/Amarr Freighter: +5% vrachtruimte per niveau."),
     )
-    fit = models.TextField(
-        blank=True, default="", verbose_name=_("Fit (plakken uit EVE)"),
-        help_text=_("Plak hier je fit zoals je die in EVE kopieert. Modules die de "
-                    "vrachtruimte vergroten worden meegerekend, mét stacking-penalty. "
-                    "Laat leeg voor een kale romp."),
-    )
-    hold_handmatig = models.FloatField(
-        default=0, verbose_name=_("Vrachtruimte zelf invullen (m³)"),
-        help_text=_("Staat dit op 0, dan rekenen we de vrachtruimte uit op basis van "
-                    "je schip, skills en fit. Vul het getal uit de game in als je zeker "
-                    "wilt weten dat het klopt — dan gaat deze waarde voor."),
-    )
 
     class Meta:
         default_permissions = ()
@@ -180,4 +164,55 @@ class Piloot(models.Model):
         verbose_name_plural = _("piloot-profielen")
 
     def __str__(self) -> str:
-        return f"{self.user} — {self.get_schip_type_id_display()}"
+        return f"{self.user}"
+
+    def actief_schip(self):
+        """Het schip waarmee gerekend wordt (expliciet gekozen, anders het eerste)."""
+        return (self.schepen.filter(actief=True).first()
+                or self.schepen.order_by("id").first())
+
+
+class Schip(models.Model):
+    """Eén jump freighter van een piloot, met z'n eigen fit.
+
+    Iemand kan er meerdere hebben — bijvoorbeeld een Ark voor de kleine runs en
+    een Rhea voor het grote werk — en kiest welke actief is.
+    """
+
+    piloot = models.ForeignKey(Piloot, on_delete=models.CASCADE, related_name="schepen")
+    schip_type_id = models.IntegerField(
+        choices=Piloot.SCHEPEN, default=28850, verbose_name=_("Schip"),
+        help_text=_("Bepaalt het isotopenverbruik, de brandstofsoort en hoeveel er in past."),
+    )
+    naam = models.CharField(
+        max_length=60, blank=True, default="", verbose_name=_("Eigen naam"),
+        help_text=_("Optioneel, bijvoorbeeld \"grote hauler\" — handig als je er meerdere hebt."),
+    )
+    fit = models.TextField(
+        blank=True, default="", verbose_name=_("Fit (plakken uit EVE)"),
+        help_text=_("Plak je fit zoals je die in EVE kopieert. Modules die de vrachtruimte "
+                    "vergroten tellen mee, mét stacking-penalty. Leeg = kale romp."),
+    )
+    hold_handmatig = models.FloatField(
+        default=0, verbose_name=_("Vrachtruimte zelf invullen (m³)"),
+        help_text=_("0 = uitrekenen uit schip, skills en fit. Vul het getal uit de game "
+                    "in als je zeker wilt weten dat het klopt — dat gaat altijd voor."),
+    )
+    actief = models.BooleanField(
+        default=False, verbose_name=_("Actief"),
+        help_text=_("Met dit schip wordt op het contractenbord gerekend."),
+    )
+
+    class Meta:
+        default_permissions = ()
+        verbose_name = _("schip")
+        verbose_name_plural = _("schepen")
+        ordering = ("-actief", "id")
+
+    def __str__(self) -> str:
+        return self.naam or self.get_schip_type_id_display()
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        if self.actief:      # maar één schip tegelijk actief
+            Schip.objects.filter(piloot=self.piloot).exclude(pk=self.pk).update(actief=False)
