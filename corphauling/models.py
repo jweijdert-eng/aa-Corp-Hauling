@@ -166,15 +166,15 @@ class Schip(models.Model):
         max_length=60, blank=True, default="", verbose_name=_("Eigen naam"),
         help_text=_("Optioneel, bijvoorbeeld \"grote hauler\" — handig als je er meerdere hebt."),
     )
-    fit = models.TextField(
-        blank=True, default="", verbose_name=_("Fit (plakken uit EVE)"),
-        help_text=_("Plak je fit zoals je die in EVE kopieert. Modules die de vrachtruimte "
-                    "vergroten tellen mee, mét stacking-penalty. Leeg = kale romp."),
+    corp_fit = models.ForeignKey(
+        "CorpFit", on_delete=models.PROTECT, related_name="schepen",
+        null=True, blank=True, verbose_name=_("Fit"),
+        help_text=_("De corp-fit waarmee dit schip vliegt. Past de corp de fit aan, "
+                    "dan telt dat hier meteen mee."),
     )
-    hold_handmatig = models.FloatField(
-        default=0, verbose_name=_("Vrachtruimte zelf invullen (m³)"),
-        help_text=_("0 = uitrekenen uit schip, skills en fit. Vul het getal uit de game "
-                    "in als je zeker wilt weten dat het klopt — dat gaat altijd voor."),
+    fit = models.TextField(
+        blank=True, default="", editable=False,
+        help_text=_("Losse fit-tekst; alleen nog voor schepen van vóór de corp-fits."),
     )
     actief = models.BooleanField(
         default=False, verbose_name=_("Actief"),
@@ -190,7 +190,15 @@ class Schip(models.Model):
     def __str__(self) -> str:
         return self.naam or self.get_schip_type_id_display()
 
+    @property
+    def fit_tekst(self):
+        """De fit waarmee gerekend wordt: die van de corp, anders de oude losse tekst."""
+        return self.corp_fit.fit if self.corp_fit else self.fit
+
     def save(self, *args, **kwargs):
+        # Het schip volgt uit de gekozen fit — die is er immers voor één romp.
+        if self.corp_fit:
+            self.schip_type_id = self.corp_fit.schip_type_id
         super().save(*args, **kwargs)
         if self.actief:      # maar één schip tegelijk actief
             Schip.objects.filter(piloot=self.piloot).exclude(pk=self.pk).update(actief=False)

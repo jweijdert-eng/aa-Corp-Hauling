@@ -172,7 +172,7 @@ class SchipInline(admin.TabularInline):
 
     model = Schip
     extra = 0
-    fields = ("schip_type_id", "naam", "hold_handmatig", "actief", "fit")
+    fields = ("corp_fit", "naam", "actief")
     classes = ("collapse",)
 
 
@@ -183,10 +183,11 @@ PilootAdmin.inlines = (SchipInline,)
 class SchipAdmin(admin.ModelAdmin):
     """Alle schepen over alle piloten heen — handig om fits te vergelijken."""
 
-    list_display = ("eigenaar", "schip", "naam", "actief", "hold_handmatig", "heeft_fit")
+    list_display = ("eigenaar", "schip", "naam", "fit_naam", "actief")
     list_filter = ("schip_type_id", "actief")
     search_fields = ("piloot__user__username", "naam")
     raw_id_fields = ("piloot",)
+    list_select_related = ("corp_fit",)
 
     def get_queryset(self, request):
         return super().get_queryset(request).select_related("piloot__user")
@@ -199,9 +200,9 @@ class SchipAdmin(admin.ModelAdmin):
     def schip(self, obj):
         return obj.get_schip_type_id_display()
 
-    @admin.display(description=_("Fit"), boolean=True)
-    def heeft_fit(self, obj):
-        return bool(obj.fit.strip())
+    @admin.display(description=_("Fit"), ordering="corp_fit__naam")
+    def fit_naam(self, obj):
+        return obj.corp_fit.naam if obj.corp_fit else _("(eigen fit)")
 
     def _can(self, request):
         return request.user.is_superuser or request.user.has_perm(

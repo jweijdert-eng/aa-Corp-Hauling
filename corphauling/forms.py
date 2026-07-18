@@ -7,43 +7,23 @@ from .models import CorpFit, Schip
 
 
 class SchipForm(forms.ModelForm):
-    """Eén jump freighter met z'n fit."""
-
-    corp_fit = forms.ModelChoiceField(
-        queryset=CorpFit.objects.all(), required=False,
-        label=_("Corp-fit overnemen"), empty_label=_("— eigen fit hieronder —"),
-        widget=forms.Select(attrs={"class": "form-select"}),
-        help_text=_("Kies een standaardfit van de corp; die vult het veld hieronder. "
-                    "Laat leeg als je je eigen fit plakt."),
-    )
-
-    field_order = ("schip_type_id", "naam", "corp_fit", "fit", "hold_handmatig")
+    """Eén jump freighter: kies een corp-fit, de rest volgt daaruit."""
 
     class Meta:
         model = Schip
-        fields = ("schip_type_id", "naam", "fit", "hold_handmatig")
+        fields = ("corp_fit", "naam")
         widgets = {
-            "schip_type_id": forms.Select(attrs={"class": "form-select"}),
+            "corp_fit": forms.Select(attrs={"class": "form-select"}),
             "naam": forms.TextInput(attrs={"class": "form-control",
                                            "placeholder": _("bijv. grote hauler")}),
-            "fit": forms.Textarea(attrs={
-                "class": "form-control", "rows": 7,
-                "placeholder": (
-                    "[Rhea, mijn hauler]\n"
-                    "Expanded Cargohold II\n"
-                    "Expanded Cargohold II\n"
-                    "Expanded Cargohold II"
-                ),
-            }),
-            "hold_handmatig": forms.NumberInput(attrs={"class": "form-control",
-                                                       "min": 0, "step": 1000}),
         }
 
-    def clean(self):
-        """Een gekozen corp-fit wint van wat er in het tekstveld staat."""
-        data = super().clean()
-        corp_fit = data.get("corp_fit")
-        if corp_fit:
-            data["fit"] = corp_fit.fit
-            self.instance.fit = corp_fit.fit
-        return data
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["corp_fit"].queryset = CorpFit.objects.all()
+        self.fields["corp_fit"].required = True
+        self.fields["corp_fit"].empty_label = _("— kies een fit —")
+        self.fields["corp_fit"].help_text = _(
+            "Het schip volgt uit de fit. Staat de jouwe er niet bij? Vraag een "
+            "beheerder om 'm toe te voegen."
+        )

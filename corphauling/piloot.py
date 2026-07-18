@@ -113,15 +113,10 @@ def parameters(user=None):
 
     fit_modules = []
     hold_berekend = hold_skills
-    if hold_skills and schip and schip.fit.strip():
-        hold_berekend, fit_modules = hold_uit_fit(hold_skills, schip.fit)
+    if hold_skills and schip and schip.fit_tekst.strip():
+        hold_berekend, fit_modules = hold_uit_fit(hold_skills, schip.fit_tekst)
 
-    # Zelf ingevuld gaat altijd voor: dat is het enige getal dat we zeker weten.
-    hold_bron = "berekend"
-    if schip and schip.hold_handmatig:
-        hold_berekend, hold_bron = schip.hold_handmatig, "handmatig"
-    elif fit_modules:
-        hold_bron = "fit"
+    hold_bron = "fit" if fit_modules else "berekend"
 
     return {
         "schip": schip_naam,
@@ -174,10 +169,8 @@ def _andere_schepen(profiel, actief, jf_niv, rassen_niv_actief, esi_niveaus):
             rassen_niv = rassen_niv_actief      # handmatig ingevuld: één waarde voor alles
 
         hold = basis * (1 + 0.10 * jf_niv) * (1 + 0.05 * rassen_niv)
-        if s.fit.strip():
-            hold, _mods = hold_uit_fit(hold, s.fit)
-        if s.hold_handmatig:
-            hold = s.hold_handmatig
+        if s.fit_tekst.strip():
+            hold, _mods = hold_uit_fit(hold, s.fit_tekst)
         uit.append({"label": str(s), "hold": hold,
                     "schip": stats.get("naam", ""), "rassen_skill": rassen_niv})
     return uit

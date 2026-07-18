@@ -48,18 +48,19 @@ brandstof    = basis × (1 − 0,10 × Jump Fuel Conservation) × (1 − 0,10 ×
 Een Rhea met maximale skills komt daarmee op 270.000 m³ en 2.500 isotopen per lichtjaar,
 tegen 144.000 m³ en 10.000 isotopen voor de kale romp zonder skills.
 
-Je kunt daarnaast je **fit plakken** (het EFT-blok uit de game). Modules die de cargo
-vergroten worden meegerekend met EVE's stacking-penalty — drie Expanded Cargohold II's
-leveren ×1,83 op, niet ×2,07. Weet je je werkelijke vrachtruimte, vul die dan gewoon in;
-die waarde gaat altijd voor.
+Modules die de cargo vergroten worden meegerekend met EVE's stacking-penalty — drie
+Expanded Cargohold II's leveren ×1,83 op, niet ×2,07.
 
 De profielpagina laat de hele opbouw zien, zodat je 'm naast de game kunt leggen.
 
 ### Corp-fits
 
-Een beheerder kan standaardfits klaarzetten (admin → *Corp-fits*): een naam, het schip en
-het EFT-blok. Leden kiezen die dan uit een keuzelijst in plaats van zelf te plakken —
-dan rekent iedereen met dezelfde uitgangspunten en hoeft niemand iets over te typen.
+Een beheerder zet de fits klaar (admin → *Corp-fits*): een naam, het schip en het
+EFT-blok. Leden **kiezen daaruit** — er valt niets te plakken of in te vullen, dus
+iedereen rekent met dezelfde uitgangspunten. Het schip volgt uit de fit.
+
+Pas je een corp-fit aan, dan werkt dat meteen door bij iedereen die 'm gebruikt. Een fit
+die nog in gebruik is kan niet verwijderd worden.
 
 ### Persoonlijk profiel
 
