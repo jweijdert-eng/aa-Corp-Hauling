@@ -73,9 +73,10 @@ niemand rekent per ongeluk met verouderde of te optimistische waarden. Kan de pl
 niet lezen (geen gekoppeld character), dan rekent hij conservatief met niveau 0 en biedt
 de profielpagina een knop om dat in één klik te herstellen.
 
-Elk lid beheert op `/corp-hauling/profiel/` **zijn eigen vloot**: voeg zoveel jump
-freighters toe als je wilt (Ark, Anshar, Nomad, Rhea), elk met een eigen naam en fit.
-Eén schip is actief — daarmee wordt op het contractenbord gerekend. Wisselen kan direct
+Een beheerder zet de schepen van een lid klaar (admin → *Schepen*, of als inline onder de
+piloot): kies de corp-fit en eventueel een eigen naam. Op `/corp-hauling/profiel/` ziet
+het lid zijn vloot met per schip de vrachtruimte, het brandstofverbruik en het
+sprongbereik. Eén schip is actief — daarmee wordt op het contractenbord gerekend. Wisselen kan direct
 op het bord met de keuzelijst *rekenen met*, zonder naar je profiel te gaan. Past een contract niet in je actieve schip, dan zoekt het bord in je andere schepen:
 *past wel in je grote Rhea* — of *past in geen van je schepen*, als het echt te groot is.
 Het kleinste schip dat het aankan wordt eerst genoemd. Skills worden standaard **uit EVE gelezen** — Jump Drive Calibration (+20%

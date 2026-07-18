@@ -161,42 +161,14 @@
                                 <button type="submit" class="cc-sort cc-knop">{% translate "maak actief" %}</button>
                             </form>
                         {% endif %}
-                        <a href="?bewerk={{ s.obj.pk }}" class="cc-sort cc-knop">{% translate "bewerken" %}</a>
-                        <form method="post"
-                              onsubmit="return confirm('{% translate "Dit schip verwijderen?" %}')">
-                            {% csrf_token %}
-                            <input type="hidden" name="actie" value="schip-weg">
-                            <input type="hidden" name="schip_id" value="{{ s.obj.pk }}">
-                            <button type="submit" class="cc-knop cc-knop-weg" title="{% translate 'verwijderen' %}">×</button>
-                        </form>
                     </div>
                 </div>
             {% endfor %}
         </div>
     {% else %}
-        <p class="cc-dim">{% translate "Nog geen schepen. Kies hieronder een fit om er één toe te voegen." %}</p>
+        <p class="cc-dim">
+            {% translate "Er staan nog geen schepen op je naam. Vraag een beheerder om er één toe te voegen." %}
+        </p>
     {% endif %}
 
-    <h4 class="cc-kop">
-        {% if bewerken %}{% translate "Schip bewerken" %}{% else %}{% translate "Schip toevoegen" %}{% endif %}
-    </h4>
-    <form method="post" style="max-width: 620px;">
-        {% csrf_token %}
-        <input type="hidden" name="actie" value="{% if bewerken %}schip-bewerk{% else %}schip-nieuw{% endif %}">
-        {% if bewerken %}<input type="hidden" name="schip_id" value="{{ bewerken.pk }}">{% endif %}
-        {% for veld in schip_form %}
-            <div class="mb-3">
-                <label class="form-label" for="{{ veld.id_for_label }}">{{ veld.label }}</label>
-                {{ veld }}
-                {% if veld.help_text %}<div class="cc-dim small mt-1">{{ veld.help_text }}</div>{% endif %}
-                {% for fout in veld.errors %}<div class="cc-red small">{{ fout }}</div>{% endfor %}
-            </div>
-        {% endfor %}
-        <button type="submit" class="btn btn-sm cc-refresh">
-            {% if bewerken %}{% translate "Opslaan" %}{% else %}{% translate "Toevoegen" %}{% endif %}
-        </button>
-        {% if bewerken %}
-            <a href="{% url 'corphauling:profiel' %}" class="cc-sort ms-2">{% translate "annuleren" %}</a>
-        {% endif %}
-    </form>
 {% endblock %}

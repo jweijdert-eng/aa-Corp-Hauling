@@ -18,7 +18,6 @@ from .esi import (
     open_couriers,
     resolve_names,
 )
-from .forms import SchipForm
 from .models import Config, CorpFit, Piloot, Schip
 from .piloot import parameters, schepen_overzicht
 from .profit import build
@@ -104,50 +103,20 @@ def grant_access(request: WSGIRequest, token) -> HttpResponse:
 @login_required
 @permission_required("corphauling.basic_access")
 def profiel(request: WSGIRequest) -> HttpResponse:
-    """Je skills en je schepen — elk met een eigen fit; één is actief."""
+    """Je skills en je schepen. Schepen worden door een beheerder toegevoegd;
+    hier kies je alleen met welke je vliegt."""
     piloot, _nieuw = Piloot.objects.get_or_create(user=request.user)
-    actie = request.POST.get("actie", "")
 
-    if request.method == "POST" and actie in ("schip-nieuw", "schip-bewerk"):
-        schip = None
-        if actie == "schip-bewerk":
-            schip = get_object_or_404(Schip, pk=request.POST.get("schip_id"), piloot=piloot)
-        schip_form = SchipForm(request.POST, instance=schip)
-        if schip_form.is_valid():
-            nieuw_schip = schip_form.save(commit=False)
-            nieuw_schip.piloot = piloot
-            # Het eerste schip is meteen het actieve.
-            if not piloot.schepen.exists():
-                nieuw_schip.actief = True
-            nieuw_schip.save()
-            messages.success(request, _("Schip opgeslagen."))
-            return redirect("corphauling:profiel")
-    elif request.method == "POST" and actie == "schip-actief":
+    if request.method == "POST" and request.POST.get("actie") == "schip-actief":
         schip = get_object_or_404(Schip, pk=request.POST.get("schip_id"), piloot=piloot)
         schip.actief = True
         schip.save()   # zet de andere automatisch uit
         messages.success(request, _("%(schip)s is nu je actieve schip.") % {"schip": schip})
         return redirect("corphauling:profiel")
-    elif request.method == "POST" and actie == "schip-weg":
-        schip = get_object_or_404(Schip, pk=request.POST.get("schip_id"), piloot=piloot)
-        was_actief = schip.actief
-        schip.delete()
-        rest = piloot.schepen.first()
-        if was_actief and rest:      # anders blijft er geen actief schip over
-            rest.actief = True
-            rest.save()
-        messages.success(request, _("Schip verwijderd."))
-        return redirect("corphauling:profiel")
-
-    bewerk_id = request.GET.get("bewerk")
-    bewerken = Schip.objects.filter(pk=bewerk_id, piloot=piloot).first() if bewerk_id else None
 
     return render(request, "corphauling/profiel.html", {
-        "schip_form": SchipForm(instance=bewerken),
-        "bewerken": bewerken,
         "schepen": schepen_overzicht(request.user),
         "par": parameters(request.user),
-        "heeft_profiel": True,
     })
 
 
