@@ -69,7 +69,6 @@
 /* Route-regel */
 .cc-app .cc-route { display: flex; align-items: center; flex-wrap: wrap; gap: .35rem; font-weight: 600; }
 .cc-app .cc-arrow { color: var(--cc-dim); }
-.cc-app .cc-sys { white-space: nowrap; }
 
 /* Waarschuwingsbadges bij de route */
 .cc-app .cc-badge {
