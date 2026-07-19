@@ -10,9 +10,11 @@ Op de pagina zie je, over al je gekoppelde characters samen:
 - **Onderweg** (lopende ritten) en gefaalde ritten met verloren collateral
 - Een **grafiek** van je verdiensten per dag
 - Een **lijst** van alle ritten (klaar / onderweg / gefaald)
+- **Maand-tabs** met de historie per maand
 
-De data komt uit je persoonlijke contracten via ESI; de plugin houdt zelf niets
-in de database bij. Stationnamen worden opgezocht, player-structures via een
+De data komt uit je persoonlijke contracten via ESI. Omdat ESI maar ~30 dagen
+teruggeeft, slaat de plugin elke afgeronde rit op zodra hij 'm ziet — zo bouwt
+de maand-historie zich vanzelf op. Stationnamen worden opgezocht, player-structures via een
 optioneel structures-token.
 
 ## Installatie

@@ -24,6 +24,17 @@
             </a>
         </div>
     {% else %}
+        {# Maand-tabs #}
+        {% if maanden %}
+        <div class="cc-tabs mb-3">
+            {% for m in maanden %}
+                <a href="?maand={{ m.key }}" class="cc-tab {% if m.key == gekozen %}is-active{% endif %}">
+                    {{ m.label }}
+                </a>
+            {% endfor %}
+        </div>
+        {% endif %}
+
         {# Samenvatting #}
         <div class="cc-stats mb-3">
             <div class="cc-stat">
@@ -132,6 +143,15 @@
             background: linear-gradient(90deg, #7fe0ff, #3ecf6e); -webkit-background-clip: text;
             background-clip: text; color: transparent; }
         .cc-app .cc-hero-sub { color: var(--cc-dim); font-size: .85rem; margin-top: .15rem; }
+
+        /* Maand-tabs */
+        .cc-app .cc-tabs { display: flex; flex-wrap: wrap; gap: .35rem; border-bottom: 1px solid var(--cc-border); }
+        .cc-app .cc-tab { padding: .4rem .9rem; border-radius: 8px 8px 0 0; font-weight: 600;
+            color: var(--cc-dim); text-decoration: none; border: 1px solid transparent;
+            border-bottom: 2px solid transparent; margin-bottom: -1px; }
+        .cc-app .cc-tab:hover { color: var(--cc-text); background: var(--cc-surface); }
+        .cc-app .cc-tab.is-active { color: var(--cc-text); background: var(--cc-surface);
+            border-color: var(--cc-border); border-bottom-color: var(--cc-blue); }
 
         .cc-app .cc-chart-card { padding: .8rem 1rem; border-radius: 10px;
             background: var(--cc-surface); border: 1px solid var(--cc-border); }

@@ -11,7 +11,7 @@ from django.utils.translation import gettext_lazy as _
 from esi.decorators import token_required
 
 from .esi import CHAR_CONTRACTS_SCOPE, has_char_contracts_token
-from .hauls import haul_stats, user_hauls
+from .hauls import capture_hauls, haul_history, haul_stats, user_hauls
 
 
 def _character_ids(user):
@@ -27,14 +27,35 @@ def _character_ids(user):
 @login_required
 @permission_required("corphauling.basic_access")
 def index(request: WSGIRequest) -> HttpResponse:
-    """Wat de ingelogde piloot verdiende met afgeleverde koeriers-ritten."""
+    """Haul-verdiensten, per maand — met een historie die zich opbouwt."""
     if not has_char_contracts_token(_character_ids(request.user)):
         return render(request, "corphauling/hauls.html", {"no_token": True})
 
-    hauls, _met = user_hauls(request.user)
+    # Live ophalen, de afgeronde ritten vastleggen, dan de historie per maand lezen.
+    live, _met = user_hauls(request.user)
+    capture_hauls(request.user, live)
+    maanden = haul_history(request.user)
+    in_progress = [h for h in live if h["is_bezig"]]
+
+    # Welke maand-tab is gekozen? Default = de nieuwste maand.
+    keys = [m["key"] for m in maanden]
+    gekozen = request.GET.get("maand")
+    if gekozen not in keys:
+        gekozen = keys[0] if keys else None
+
+    actief = next((m for m in maanden if m["key"] == gekozen), None)
+    maand_hauls = actief["hauls"] if actief else []
+    # Lopende ritten horen bij 'nu', dus alleen op de nieuwste maand-tab tonen
+    # (niet in een historische maand waar ze niet thuishoren).
+    toon_bezig = in_progress if (not keys or gekozen == keys[0]) else []
+    lijst = toon_bezig + maand_hauls
+
     return render(request, "corphauling/hauls.html", {
-        "hauls": hauls,
-        "stats": haul_stats(hauls),
+        "maanden": maanden,
+        "gekozen": gekozen,
+        "hauls": lijst,
+        "stats": haul_stats(maand_hauls + toon_bezig),
+        "heeft_historie": bool(maanden),
     })
 
 

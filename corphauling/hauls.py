@@ -101,6 +101,7 @@ def user_hauls(user):
         voltooid = _parse(c.get("date_completed"))
         hauls.append({
             "id": c["contract_id"],
+            "character_id": c["_acc"],
             "piloot": naam_van.get(c["_acc"], f"#{c['_acc']}"),
             "status": c.get("status"),
             "beloning": beloning,
@@ -163,3 +164,91 @@ def haul_stats(hauls):
         "verlies_fmt": fmt_isk(verlies),
         "grafiek": grafiek,
     }
+
+
+# --------------------------------------------------------------------------
+# Historie: opslaan zodra we een afgeronde rit zien, en per maand teruglezen
+# --------------------------------------------------------------------------
+
+MAAND_NL = ["", "januari", "februari", "maart", "april", "mei", "juni", "juli",
+            "augustus", "september", "oktober", "november", "december"]
+
+
+def capture_hauls(user, live_hauls):
+    """Bewaar de afgeleverde/gefaalde ritten die we nu van ESI zien.
+
+    ESI geeft maar ~30 dagen terug, dus door dit bij elk bezoek te doen bouwt
+    de historie zich vanzelf op. Lopende ritten slaan we niet op (nog niet af).
+    """
+    from .models import Haul
+
+    for h in live_hauls:
+        if not (h["is_klaar"] or h["is_gefaald"]):
+            continue
+        # Een gefaald contract heeft vaak geen date_completed → val terug op de
+        # uitgiftedatum, zodat het toch in de juiste maand belandt.
+        wanneer = h["date_completed"] or h["date_issued"]
+        if not wanneer:
+            continue
+        Haul.objects.update_or_create(
+            contract_id=h["id"],
+            defaults={
+                "user": user,
+                "character_id": h["character_id"],
+                "character_name": h["piloot"],
+                "reward": h["beloning"],
+                "volume": h["volume"],
+                "collateral": h["collateral"],
+                "start_name": h["start"][:120],
+                "end_name": h["eind"][:120],
+                "title": (h["titel"] or "")[:255],
+                "failed": h["is_gefaald"],
+                "date_completed": wanneer,
+            },
+        )
+
+
+def _model_to_dict(h):
+    """Een opgeslagen Haul → dezelfde dict-vorm die de lijst-template verwacht."""
+    return {
+        "id": h.contract_id,
+        "piloot": h.character_name,
+        "status": "failed" if h.failed else "finished",
+        "beloning": h.reward,
+        "beloning_fmt": fmt_isk(h.reward),
+        "collateral": h.collateral,
+        "volume": h.volume,
+        "volume_fmt": f"{h.volume:,.0f}".replace(",", "."),
+        "per_m3_fmt": fmt_isk(h.reward / h.volume) if h.volume else "—",
+        "start": h.start_name, "eind": h.end_name,
+        "titel": h.title,
+        "date_completed": h.date_completed,
+        "is_klaar": not h.failed,
+        "is_bezig": False,
+        "is_gefaald": h.failed,
+    }
+
+
+def haul_history(user):
+    """Alle opgeslagen ritten van de gebruiker, gegroepeerd per maand (nieuwste eerst).
+
+    Geeft een lijst dicts: {key: '2026-07', label: 'juli 2026', hauls: [...]}.
+    """
+    from .models import Haul
+
+    per_maand = {}
+    for h in Haul.objects.filter(user=user):
+        key = h.date_completed.strftime("%Y-%m")
+        per_maand.setdefault(key, []).append(_model_to_dict(h))
+
+    maanden = []
+    for key in sorted(per_maand, reverse=True):
+        jaar, maand = key.split("-")
+        rijen = sorted(per_maand[key], key=lambda x: x["date_completed"], reverse=True)
+        maanden.append({
+            "key": key,
+            "label": f"{MAAND_NL[int(maand)]} {jaar}",
+            "kort": f"{MAAND_NL[int(maand)][:3]} {jaar[2:]}",
+            "hauls": rijen,
+        })
+    return maanden
