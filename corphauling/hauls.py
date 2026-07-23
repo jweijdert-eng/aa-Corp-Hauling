@@ -8,7 +8,7 @@ tegenhanger van het open-contractenbord: niet 'wat kan ik pakken' maar
 
 from datetime import datetime, timedelta, timezone as dt_tz
 
-from .esi import character_contracts, location_info
+from .esi import character_contracts, location_info, system_security
 
 FINISHED = ("finished", "finished_contractor", "finished_issuer")
 
@@ -57,20 +57,25 @@ def demo_hauls():
             "piloot": "Demo Piloot", "character_id": 0,
             "is_bezig": False, "is_klaar": False, "is_gefaald": False,
             "date_completed": None, "date_accepted": None, "duur_fmt": "—",
+            "start_sec": None, "eind_sec": None,
         }
         basis.update(kw)
         basis["beloning_fmt"] = fmt_isk(basis["beloning"])
         basis["volume_fmt"] = f"{basis['volume']:,.0f}".replace(",", ".")
+        basis["start_sec_fmt"] = _sec_fmt(basis["start_sec"])
+        basis["eind_sec_fmt"] = _sec_fmt(basis["eind_sec"])
+        basis["start_klasse"] = _sec_klasse(basis["start_sec"])
+        basis["eind_klasse"] = _sec_klasse(basis["eind_sec"])
         return basis
 
     return [
         rit(id=-1, status="in_progress", is_bezig=True,
             beloning=30_000_000.0, volume=9_000.0,
-            start="Amarr VIII", eind="Dodixie IX",
+            start="Amarr VIII", eind="Dodixie IX", start_sec=1.0, eind_sec=0.9,
             date_accepted=nu - timedelta(hours=1)),
         rit(id=-2, status="finished", is_klaar=True,
             beloning=45_000_000.0, volume=15_000.0,
-            start="Jita IV", eind="Amarr VIII",
+            start="Jita IV", eind="Amarr VIII", start_sec=0.9, eind_sec=1.0,
             date_accepted=acc_klaar, date_completed=nu,
             duur_fmt=fmt_dur(acc_klaar, nu)),
     ]
@@ -102,6 +107,23 @@ def _parse(value):
 def _kort(naam):
     """'Jita IV - Moon 4 - CNAP' → 'Jita IV'; structure 'Systeem - Naam' → 'Systeem'."""
     return (naam or "").split(" - ")[0]
+
+
+def _sec_klasse(sec):
+    """Securityklasse voor de kleur: hi (≥0,5) / low (>0,0) / null / onbekend."""
+    if sec is None:
+        return "onbekend"
+    r = round(sec, 1)
+    if r >= 0.5:
+        return "hi"
+    if r > 0.0:
+        return "low"
+    return "null"
+
+
+def _sec_fmt(sec):
+    """Security op één decimaal, zoals in EVE ('0.9', '-0.4'); leeg als onbekend."""
+    return f"{round(sec, 1):.1f}" if sec is not None else ""
 
 
 def user_hauls(user):
@@ -138,17 +160,21 @@ def user_hauls(user):
     # Locatienamen: stations via cache/ESI, structures kan de server niet — dan id.
     loc_ids = {lid for c in contracten
                for lid in (c.get("start_location_id"), c.get("end_location_id")) if lid}
-    loc_naam = {}
+    loc_info = {}
     for lid in loc_ids:
         info = location_info(lid)
-        loc_naam[lid] = info["name"]
+        loc_info[lid] = {"naam": info["name"], "sec": system_security(info.get("system_id"))}
 
     hauls = []
     for c in contracten:
         beloning = float(c.get("reward") or 0)
         volume = float(c.get("volume") or 0)
-        start = loc_naam.get(c.get("start_location_id"), "?")
-        eind = loc_naam.get(c.get("end_location_id"), "?")
+        s = loc_info.get(c.get("start_location_id"), {})
+        e = loc_info.get(c.get("end_location_id"), {})
+        start = s.get("naam", "?")
+        eind = e.get("naam", "?")
+        start_sec = s.get("sec")
+        eind_sec = e.get("sec")
         voltooid = _parse(c.get("date_completed"))
         geaccepteerd = _parse(c.get("date_accepted"))
         hauls.append({
@@ -165,6 +191,9 @@ def user_hauls(user):
             "per_m3_fmt": fmt_isk(beloning / volume) if volume else "—",
             "start": _kort(start), "eind": _kort(eind),
             "start_vol": start, "eind_vol": eind,
+            "start_sec": start_sec, "eind_sec": eind_sec,
+            "start_sec_fmt": _sec_fmt(start_sec), "eind_sec_fmt": _sec_fmt(eind_sec),
+            "start_klasse": _sec_klasse(start_sec), "eind_klasse": _sec_klasse(eind_sec),
             "titel": c.get("title") or "",
             "date_completed": voltooid,
             "date_accepted": geaccepteerd,
@@ -259,6 +288,8 @@ def capture_hauls(user, live_hauls):
                 "failed": h["is_gefaald"],
                 "date_completed": wanneer,
                 "date_accepted": h.get("date_accepted"),
+                "start_sec": h.get("start_sec"),
+                "end_sec": h.get("eind_sec"),
             },
         )
 
@@ -276,6 +307,9 @@ def _model_to_dict(h):
         "volume_fmt": f"{h.volume:,.0f}".replace(",", "."),
         "per_m3_fmt": fmt_isk(h.reward / h.volume) if h.volume else "—",
         "start": h.start_name, "eind": h.end_name,
+        "start_sec": h.start_sec, "eind_sec": h.end_sec,
+        "start_sec_fmt": _sec_fmt(h.start_sec), "eind_sec_fmt": _sec_fmt(h.end_sec),
+        "start_klasse": _sec_klasse(h.start_sec), "eind_klasse": _sec_klasse(h.end_sec),
         "titel": h.title,
         "date_completed": h.date_completed,
         "date_accepted": h.date_accepted,

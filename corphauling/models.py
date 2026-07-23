@@ -61,6 +61,8 @@ class Haul(models.Model):
     collateral = models.FloatField(default=0)
     start_name = models.CharField(max_length=120, default="")
     end_name = models.CharField(max_length=120, default="")
+    start_sec = models.FloatField(null=True, blank=True)     # security-status begin
+    end_sec = models.FloatField(null=True, blank=True)       # security-status eind
     title = models.CharField(max_length=255, blank=True, default="")
 
     failed = models.BooleanField(default=False)     # False = netjes afgeleverd

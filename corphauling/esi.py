@@ -212,3 +212,21 @@ def location_info(location_id):
         info["name"] = f"Onbekende locatie #{location_id}"
     cache.set(key, info, TTL_LOCATION if info["system_id"] else 600)
     return info
+
+
+def system_security(system_id):
+    """Security-status (float) van een systeem — publiek, lang gecached (30d).
+
+    Geeft None als het systeem onbekend is. Security wijzigt in de praktijk nooit.
+    """
+    if not system_id:
+        return None
+    key = f"cc_sec_{system_id}"
+    cached = cache.get(key)
+    if cached is not None:
+        return None if cached == "none" else cached
+
+    data = _get(f"/universe/systems/{system_id}/") or {}
+    sec = data.get("security_status")
+    cache.set(key, sec if sec is not None else "none", 30 * 24 * 3600)
+    return sec
